@@ -15,7 +15,7 @@ from solathon import Keypair
 import requests
 
 
-async def create_account(amount, file_name=None, save=True):
+async def create_account(amount, invite_code='',file_name=None, save=True):
     """ 创建Solana钱包账户
     :param amount: 需要创建的钱包账户数量
     :param file_name: 需要存储的txt文件名称，名称包含".txt"
@@ -35,7 +35,7 @@ async def create_account(amount, file_name=None, save=True):
                 file.write(f"{wallet_data.public_key},{wallet_data.private_key}\n")
 
             file.close()
-            logger.success(f"生成钱包成功, 数量为: {amount},  存放目录： {file_path}")
+            logger.success(f"生成钱包成功, 数量为: {amount},  该钱包使用邀请码： {invite_code}")
     else:
         return accounts
 
@@ -192,6 +192,16 @@ def getInviteCode(file_name):
 
     return inviteCodes
 
+async def inviteAcount(random_Count,invite_code,file_name):
+    """ 邀请新账户
+    :param random_Count：创建新账户个数
+    :param invite_code：使用的邀请码
+    :param file_name: 需要执行的txt文件路径
+    :return:
+    """
+    await create_account(random_Count, invite_code,file_name)
+    await operate(invite_code,file_name)
+
 if __name__ == '__main__':
     
     opt = input("如果想签到请选择1，\n如果想邀请新用户请选择2：\n")
@@ -220,10 +230,7 @@ if __name__ == '__main__':
             else:
                 count = count - randomCount
 
-            task = [create_account(randomCount, "test.txt"),operate(inviteCode, "test.txt")]
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(asyncio.gather(*task))
-            loop.close()
+            asyncio.run(inviteAcount(randomCount,inviteCode,"test.txt"))
 
     else:
         logger.error("选择类型错误！")
