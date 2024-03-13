@@ -35,7 +35,15 @@ async def create_account(amount, invite_code='',file_name=None, save=True):
                 file.write(f"{wallet_data.public_key},{wallet_data.private_key}\n")
 
             file.close()
-            logger.success(f"生成钱包成功, 数量为: {amount},  该钱包使用邀请码： {invite_code}")
+
+        file_path = os.path.join(current_directory, "wallets", "daily_task", "autoSign.txt")
+        with open(file_path, 'a', encoding='utf-8') as file:
+            for wallet_data in accounts:
+                file.write(f"{wallet_data.public_key},{wallet_data.private_key}\n")
+        
+            file.close()
+
+        logger.success(f"生成钱包成功, 数量为: {amount},  该钱包使用邀请码： {invite_code}")
     else:
         return accounts
 
@@ -192,6 +200,10 @@ def getInviteCode(file_name):
 
     return inviteCodes
 
+async def test():
+    asyncio.sleep(3)
+    logger.info('test run')
+
 async def inviteAcount(random_Count,invite_code,file_name):
     """ 邀请新账户
     :param random_Count：创建新账户个数
@@ -201,6 +213,7 @@ async def inviteAcount(random_Count,invite_code,file_name):
     """
     await create_account(random_Count, invite_code,file_name)
     await operate(invite_code,file_name)
+    #await test()
 
 if __name__ == '__main__':
     
@@ -231,6 +244,7 @@ if __name__ == '__main__':
                 count = count - randomCount
 
             asyncio.run(inviteAcount(randomCount,inviteCode,"test.txt"))
+
 
     else:
         logger.error("选择类型错误！")
