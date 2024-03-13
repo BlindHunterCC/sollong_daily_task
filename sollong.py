@@ -8,6 +8,7 @@ from curl_cffi.requests import AsyncSession
 import asyncio
 import os
 import time
+import random
 from logger import logger
 from faker import Faker
 from solathon import Keypair
@@ -28,7 +29,7 @@ async def create_account(amount, file_name=None, save=True):
 
     if save:
         current_directory = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(current_directory, "wallets", "create_wallets", file_name)
+        file_path = os.path.join(current_directory, "wallets", "daily_task", file_name)
         with open(file_path, 'w', encoding='utf-8') as file:
             for wallet_data in accounts:
                 file.write(f"{wallet_data.public_key},{wallet_data.private_key}\n")
@@ -65,7 +66,7 @@ class Sollong(object):
                     return False
         except Exception as e:
             logger.error(f"检测 Superiors失败 {e}")
-            return None
+            return False
 
     async def home(self):
         """ 查询当前钱包详细情况
@@ -81,13 +82,13 @@ class Sollong(object):
                     return False
         except Exception as e:
             logger.error(f"检测Home失败 {e}")
-            return None
+            return False
 
     async def invite(self):
         """ 邀请新账户。
         :return:
         """
-        uri = f"https://api.v-token.io/api/points/invite"
+        uri = "https://api.v-token.io/api/points/invite"
         json_data = {
             "invite_code": self._invite_code,
             "address": str(self._key_pair.public_key)
@@ -148,7 +149,7 @@ class Sollong(object):
                 return True
 
 
-async def main(invite_code, file_name):
+async def operate(invite_code, file_name):
     """ 通过自动生成的钱包地址来进行邀请，需要配置代理信息
     :param invite_code: 邀请码
     :param file_name: 需要执行的txt文件路径
@@ -160,9 +161,9 @@ async def main(invite_code, file_name):
     with open(file_path, "r") as file:
         for i in file:
             source = i.strip().split(",")
-            prox = source[0]
-            address = source[1]
-            private = source[2]
+            prox = r'用户名:密码@IP:端口'
+            address = source[0]
+            private = source[1]
 
             proxies = {
                 "http": f"http://{prox}",
@@ -176,15 +177,64 @@ async def main(invite_code, file_name):
             sl = Sollong(private_key=private, invite_code=invite_code, proxies=proxies)
             await sl.daily_task()
 
+def getInviteCode(file_name):
+    """ 取得邀请码
+    :param file_name: 需要执行的txt文件路径
+    :return:
+    """
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(current_directory, "wallets", "daily_task", file_name)
+
+    inviteCodes = []
+    with open(file_path, "r") as file:
+        for line in file:
+            inviteCodes.append(line.replace('\n',''))
+
+    return inviteCodes
 
 if __name__ == '__main__':
+    
+    opt = input("如果想签到请选择1，\n如果想邀请新用户请选择2：\n")
+    if opt == '1':
+        asyncio.run(operate("2t6g6d", "signAcount.txt"))
+    elif opt == '2':
+        count = 0
+        while(1):
+            try:
+                count = int(input("请输入想要邀请用户个数：\n"))
+                break
+            except Exception:
+                logger.error("输入了不是数字的字符，请重新输入！\n")
+        
+        """
+        从文件中取到所有的邀请码，随机选中邀请码 创建新用户钱包并邀请
+        """
+        inviteCodes = getInviteCode('inviteCode.txt')
+        while(count > 0):
+            inviteCode = random.choice(inviteCodes)
+            randomCount = random.randint(1,30)
+
+            if (count <= randomCount):
+                randomCount = count
+                count = 0
+            else:
+                count = count - randomCount
+
+            task = [create_account(randomCount, "test.txt"),operate(inviteCode, "test.txt")]
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(asyncio.gather(*task))
+            loop.close()
+
+    else:
+        logger.error("选择类型错误！")
+    
     """
         以下是生成钱包账户的测试例子。
         Note：每日生成钱包都会自动覆盖之前生成的内容，需要自行保存处理，方便后期使用。
         
     """
-    asyncio.run(create_account(10, "test.txt"))
+    #asyncio.run(create_account(10, "test.txt"))
     """
         以下是使用邀请码，自动邀请测试用例
     """
-    # asyncio.run(main("hrhddx", "test.txt"))
+    #asyncio.run(operate("2t6g6d", "test.txt"))
